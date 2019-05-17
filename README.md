@@ -1,10 +1,12 @@
 # sqm
+https://sqm.dev
 A Query Builder with Benefits
 
 ## In Development
 While the public API is stable, there are still internal tasks left
 
 ## Quick example
+Code bellow shows the many possible ways to use SQM, it's not intended as a guide. For a better look at code archictecture and organization https://sqm.dev
 
 ```go
 package main
