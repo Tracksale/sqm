@@ -1,6 +1,13 @@
 # sqm
 A Query Builder with Benefits
 
+## Supported SQL Flavors
+- MySQL
+- Postgres
+- Aurora
+- SQLite
+
+
 ## In Development
 While the public API is stable, there are still internal tasks left
 
