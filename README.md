@@ -1,5 +1,4 @@
-<img src="https://sqm.dev/imgs/logo-sqm.png" height=350>
-A Query Builder with Benefits
+<center><img src="https://sqm.dev/imgs/logo-sqm.png" height=350></center>
 
 
 **In Development but with stable public API**
