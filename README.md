@@ -1,6 +1,8 @@
 # sqm
 A Query Builder with Benefits
 
+This lib is intended to be used as a one-to-one mapping of internal structure and a relational datasource, that is to say you're expected to use either raw sql or other tools for database administration queries.
+
 ## Supported SQL Flavors
 - MySQL
 - Postgres
