@@ -6,7 +6,7 @@ While the public API is stable, there are still internal tasks left
 
 ## Quick example
 
-```
+```go
 package main
 
 import (
