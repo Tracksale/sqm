@@ -1,4 +1,4 @@
-# sqm
+![sqm](https://sqm.dev/imgs/logo-sqm.png)
 A Query Builder with Benefits
 
 
