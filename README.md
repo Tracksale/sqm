@@ -1,6 +1,9 @@
 # sqm
 A Query Builder with Benefits
 
+## In Development
+While the public API is stable, there are still internal tasks left
+
 ## Quick example
 
 ```
