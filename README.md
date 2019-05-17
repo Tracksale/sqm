@@ -1,5 +1,4 @@
 # sqm
-https://sqm.dev
 A Query Builder with Benefits
 
 ## In Development
