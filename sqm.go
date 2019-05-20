@@ -21,7 +21,7 @@ type Query struct {
 	conn *sql.DB
 
 	table          string
-	conditionStack []conditionStruct
+	conditionStack []ConditionStruct
 	orderBy        []orderBy
 	limit          *int
 	offset         *int
@@ -233,8 +233,6 @@ func (q *Query) Update(i interface{}) (int64, error) {
 	}
 
 	sql := q.toSQL(queryTypeUpdate)
-
-	fmt.Println(sql)
 
 	result, err := q.conn.Exec(sql)
 	if err != nil {
