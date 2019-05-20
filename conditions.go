@@ -58,7 +58,7 @@ func internalR(interfaces ...interface{}) []conditionStruct {
 }
 
 // Where adds conditions to the stack machine
-func (q *query) Where(interfaces ...interface{}) *query {
+func (q *Query) Where(interfaces ...interface{}) *Query {
 	conditions := internalR(interfaces...)
 
 	for _, c := range conditions {

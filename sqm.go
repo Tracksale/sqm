@@ -2,8 +2,10 @@ package sqm
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 const (
@@ -15,7 +17,7 @@ const (
 )
 
 // Internal query representation
-type query struct {
+type Query struct {
 	conn *sql.DB
 
 	table          string
@@ -30,8 +32,8 @@ type query struct {
 }
 
 // Using an specified db connection and table
-func Using(db *sql.DB, table string) *query {
-	return &query{
+func Using(db *sql.DB, table string) *Query {
+	return &Query{
 		conn:  db,
 		table: table,
 	}
@@ -45,7 +47,6 @@ type field struct {
 func getFields(rT reflect.Type) []field {
 	var fs []field
 	// element
-
 	if rT.Kind() != reflect.Struct {
 		return fs
 	}
@@ -67,7 +68,7 @@ var ErrorMultipleResults = fmt.Errorf("Passed a pointer for a struct but returne
 // TODO: Check if fields are valid and writable
 
 // Select Starts a select query chain
-func (q *query) Select(i interface{}) error {
+func (q *Query) Select(i interface{}) error {
 
 	rV := reflect.ValueOf(i)
 
@@ -100,7 +101,13 @@ func (q *query) Select(i interface{}) error {
 
 	for _, field := range q.fields {
 		sF := field.sField
-		tmpField := reflect.New(sF.Type)
+		var tmpField reflect.Value
+
+		if strings.Compare(sF.Type.String(), "map[string]string") == 0 {
+			tmpField = reflect.New(reflect.TypeOf(""))
+		} else {
+			tmpField = reflect.New(sF.Type)
+		}
 
 		// What the actual fuck
 		a := tmpField.Elem().Addr().Interface()
@@ -127,7 +134,16 @@ func (q *query) Select(i interface{}) error {
 		item := reflect.New(rT)
 		for j := 0; j < rT.NumField(); j++ {
 			f := item.Elem().Field(j)
-			f.Set(reflect.ValueOf(mappings[j]).Elem())
+			scanRes := reflect.ValueOf(mappings[j]).Elem()
+
+			var jsonItem map[string]string
+			if strings.Compare(f.Type().String(), "map[string]string") == 0 {
+				json.Unmarshal([]byte(scanRes.String()), &jsonItem)
+				f.Set(reflect.ValueOf(jsonItem))
+			} else {
+				f.Set(reflect.ValueOf(mappings[j]).Elem())
+			}
+
 		}
 
 		items = reflect.Append(items, item.Elem())
@@ -146,7 +162,7 @@ func (q *query) Select(i interface{}) error {
 	return nil
 }
 
-func (q *query) Count(count *int) error {
+func (q *Query) Count(count *int) error {
 	query := q.toSQL(queryTypeCount)
 
 	rows, err := q.conn.Query(query)
@@ -168,7 +184,7 @@ func (q *query) Count(count *int) error {
 // TODO: Prepared Statements
 
 // Update Starts an update query chain
-func (q *query) Insert(i interface{}) (int64, error) {
+func (q *Query) Insert(i interface{}) (int64, error) {
 	var rowsAffected int64
 
 	rV := reflect.ValueOf(i)
@@ -200,7 +216,7 @@ func (q *query) Insert(i interface{}) (int64, error) {
 }
 
 // Update Starts an update query chain
-func (q *query) Update(i interface{}) (int64, error) {
+func (q *Query) Update(i interface{}) (int64, error) {
 	var rowsAffected int64
 
 	rV := reflect.ValueOf(i)
@@ -234,7 +250,7 @@ func (q *query) Update(i interface{}) (int64, error) {
 }
 
 // DeleteFrom starts a delete from query chain
-func (q *query) Delete() (int64, error) {
+func (q *Query) Delete() (int64, error) {
 	var rowsAffected int64
 
 	sql := q.toSQL(queryTypeDelete)

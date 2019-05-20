@@ -15,7 +15,7 @@ func buildUpdate(fields []string, values []string) string {
 	return strings.Join(parts, ", ")
 }
 
-func (q *query) toSQL(qT int) string {
+func (q *Query) toSQL(qT int) string {
 	query := ""
 
 	var fields []string
