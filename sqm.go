@@ -52,9 +52,15 @@ func getFields(rT reflect.Type) []field {
 
 	for j := 0; j < rT.NumField(); j++ {
 		f := rT.Field(j)
+
 		db, exists := f.Tag.Lookup("db")
 		if exists {
 			fs = append(fs, field{f, db})
+		} else {
+			db, exists := f.Tag.Lookup("json")
+			if exists {
+				fs = append(fs, field{f, db})
+			}
 		}
 	}
 
