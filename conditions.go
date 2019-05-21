@@ -25,32 +25,32 @@ type groupStruct struct {
 }
 
 // Internal representation of condition
-type conditionStruct struct {
+type ConditionStruct struct {
 	field         string
 	conditionType int
 	params        []string
 }
 
 // Or is a Small hack for api readability
-var Or = conditionStruct{conditionType: internalOr}
+var Or = ConditionStruct{conditionType: internalOr}
 
-func internalR(interfaces ...interface{}) []conditionStruct {
+func internalR(interfaces ...interface{}) []ConditionStruct {
 
-	var stack []conditionStruct
+	var stack []ConditionStruct
 
 	for _, i := range interfaces {
 		switch i.(type) {
-		case conditionStruct:
-			stack = append(stack, i.(conditionStruct))
+		case ConditionStruct:
+			stack = append(stack, i.(ConditionStruct))
 		case groupStruct:
-			stack = append(stack, conditionStruct{conditionType: internalOpen})
+			stack = append(stack, ConditionStruct{conditionType: internalOpen})
 
 			tmpStack := internalR(i.(groupStruct).conditions...)
 
 			for _, tmpC := range tmpStack {
 				stack = append(stack, tmpC)
 			}
-			stack = append(stack, conditionStruct{conditionType: internalClose})
+			stack = append(stack, ConditionStruct{conditionType: internalClose})
 		}
 	}
 
@@ -58,7 +58,7 @@ func internalR(interfaces ...interface{}) []conditionStruct {
 }
 
 // Where adds conditions to the stack machine
-func (q *query) Where(interfaces ...interface{}) *query {
+func (q *Query) Where(interfaces ...interface{}) *Query {
 	conditions := internalR(interfaces...)
 
 	for _, c := range conditions {
@@ -70,9 +70,9 @@ func (q *query) Where(interfaces ...interface{}) *query {
 
 // C is a shorthand for Condition and is a typesafe way
 // of expressing a node in the condition tree
-func C(field string, conditionType int, params ...interface{}) conditionStruct {
+func C(field string, conditionType int, params ...interface{}) ConditionStruct {
 	//Accept anything that can be stringified
-	c := conditionStruct{
+	c := ConditionStruct{
 		field:         field,
 		conditionType: conditionType,
 	}

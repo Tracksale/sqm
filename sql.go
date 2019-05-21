@@ -15,7 +15,7 @@ func buildUpdate(fields []string, values []string) string {
 	return strings.Join(parts, ", ")
 }
 
-func (q *query) toSQL(qT int) string {
+func (q *Query) toSQL(qT int) string {
 	query := ""
 
 	var fields []string
@@ -43,7 +43,7 @@ func (q *query) toSQL(qT int) string {
 
 		query += "\n\t"
 
-		tmpStack := append([]conditionStruct(nil), q.conditionStack...)
+		tmpStack := append([]ConditionStruct(nil), q.conditionStack...)
 
 		for len(tmpStack) > 0 {
 			//Pop
