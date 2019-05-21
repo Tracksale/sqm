@@ -66,9 +66,9 @@ func (q *Query) toSQL(qT int) string {
 			case NotLike:
 				query += condition.field + " NOT LIKE '" + condition.params[0] + "'"
 			case In:
-				query += condition.field + " IN (" + condition.params[0] + ")"
+				query += condition.field + ` IN ('` + strings.Join(condition.params, "', '") + `')`
 			case NotIn:
-				query += condition.field + " NOT IN (" + condition.params[0] + ")"
+				query += condition.field + ` NOT IN ('` + strings.Join(condition.params, "', '") + `')`
 			case IsNull:
 				query += condition.field + " IS NULL"
 			case IsNotNull:
