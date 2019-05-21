@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 const (
@@ -109,8 +108,8 @@ func (q *Query) Select(i interface{}) error {
 		sF := field.sField
 		var tmpField reflect.Value
 
-		if strings.Compare(sF.Type.String(), "map[string]string") == 0 {
-			tmpField = reflect.New(reflect.TypeOf(""))
+		if sF.Type.Kind() == reflect.Map || sF.Type.Kind() == reflect.Slice || sF.Type.Kind() == reflect.Struct {
+			tmpField = reflect.New(reflect.TypeOf([]byte{}))
 		} else {
 			tmpField = reflect.New(sF.Type)
 		}
@@ -142,14 +141,15 @@ func (q *Query) Select(i interface{}) error {
 			f := item.Elem().Field(j)
 			scanRes := reflect.ValueOf(mappings[j]).Elem()
 
-			var jsonItem map[string]string
-			if strings.Compare(f.Type().String(), "map[string]string") == 0 {
-				json.Unmarshal([]byte(scanRes.String()), &jsonItem)
-				f.Set(reflect.ValueOf(jsonItem))
-			} else {
-				f.Set(reflect.ValueOf(mappings[j]).Elem())
-			}
+			if f.Type().Kind() == reflect.Map || f.Type().Kind() == reflect.Slice || f.Type().Kind() == reflect.Struct {
+				tmpParse := reflect.New(f.Type())
 
+				json.Unmarshal(scanRes.Bytes(), tmpParse.Interface())
+
+				f.Set(tmpParse.Elem())
+			} else {
+				f.Set(scanRes)
+			}
 		}
 
 		items = reflect.Append(items, item.Elem())
