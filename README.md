@@ -1,11 +1,24 @@
-# sqm
-A Query Builder with Benefits
+<p align="center">
+	<img src="https://sqm.dev/imgs/logo-sqm.png" height=350>
+</center>
 
-## In Development
-While the public API is stable, there are still internal tasks left
+
+**In Development but with stable public API**
+
+
+This lib is intended to be used as a one-to-one mapping of internal structure and a relational datasource, that is to say you're expected to use either raw sql or other tools for database administration queries.
+
+While we do care about performance, our main focus is a readable and composable API. There will be some further study into techniques like memmoization and query compilation at startup but at the current state all the reflection and dynamic query building has no signinifcant overhead relative to the network operations a query does.
+
+## Supported SQL Flavors
+- MySQL
+- Postgres
+- Aurora
+- SQLite
+
 
 ## Quick example
-Code bellow shows the many possible ways to use SQM, it's not intended as a guide. For a better look at code archictecture and organization https://sqm.dev
+Code bellow shows the many possible ways to use SQM, it's not intended as a guide. For a better look at code archictecture and organization visit https://sqm.dev
 
 ```go
 package main
