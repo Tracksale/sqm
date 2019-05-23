@@ -199,6 +199,10 @@ func (q *Query) Insert(i interface{}) (int64, error) {
 
 	rV := reflect.ValueOf(i)
 
+	if rV.Kind() == reflect.Ptr {
+		rV = reflect.Indirect(reflect.ValueOf(i))
+	}
+
 	// Only accept structs
 	if rV.Kind() != reflect.Struct {
 		return rowsAffected, ErrorInvalidType
