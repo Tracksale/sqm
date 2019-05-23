@@ -15,6 +15,7 @@ func buildUpdate(fields []string, values []string) string {
 	return strings.Join(parts, ", ")
 }
 
+//TODO: return error when query params are invalid or insufficient
 func (q *Query) toSQL(qT int) string {
 	query := ""
 
@@ -73,6 +74,16 @@ func (q *Query) toSQL(qT int) string {
 				query += condition.field + " IS NULL"
 			case IsNotNull:
 				query += condition.field + " IS NOT NULL"
+			case Between:
+				query += condition.field + " BETWEEN '" + condition.params[0] + "' AND '" + condition.params[1]
+			case Greater:
+				query += condition.field + " > '" + condition.params[0] + "'"
+			case GreaterEqual:
+				query += condition.field + " >= '" + condition.params[0] + "'"
+			case Lower:
+				query += condition.field + " < '" + condition.params[0] + "'"
+			case LowerEqual:
+				query += condition.field + " <= '" + condition.params[0] + "'"
 			}
 
 			// I am so sorry, i will find a better way

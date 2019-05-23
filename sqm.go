@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 const (
@@ -59,6 +60,7 @@ func getFields(rT reflect.Type) []field {
 		} else {
 			db, exists := f.Tag.Lookup("json")
 			if exists {
+				db := strings.Split(db, ",")[0]
 				fs = append(fs, field{f, db})
 			}
 		}
@@ -66,9 +68,6 @@ func getFields(rT reflect.Type) []field {
 
 	return fs
 }
-
-var ErrorInvalidType = fmt.Errorf("Invalid Type")
-var ErrorMultipleResults = fmt.Errorf("Passed a pointer for a struct but returned multiple results, check query or use a slice")
 
 // TODO: Check if fields are valid and writable
 
@@ -107,8 +106,9 @@ func (q *Query) Select(i interface{}) error {
 	for _, field := range q.fields {
 		sF := field.sField
 		var tmpField reflect.Value
+		sfKind := sF.Type.Kind()
 
-		if sF.Type.Kind() == reflect.Map || sF.Type.Kind() == reflect.Slice || sF.Type.Kind() == reflect.Struct {
+		if sfKind == reflect.Map || sfKind == reflect.Slice || sfKind == reflect.Struct || sfKind == reflect.Interface {
 			tmpField = reflect.New(reflect.TypeOf([]byte{}))
 		} else {
 			tmpField = reflect.New(sF.Type)
@@ -140,13 +140,13 @@ func (q *Query) Select(i interface{}) error {
 		for j := 0; j < rT.NumField(); j++ {
 			f := item.Elem().Field(j)
 			scanRes := reflect.ValueOf(mappings[j]).Elem()
+			fKind := f.Type().Kind()
 
-			if f.Type().Kind() == reflect.Map || f.Type().Kind() == reflect.Slice || f.Type().Kind() == reflect.Struct {
+			if fKind == reflect.Map || fKind == reflect.Slice || fKind == reflect.Struct || fKind == reflect.Interface {
 				tmpParse := reflect.New(f.Type())
-
 				json.Unmarshal(scanRes.Bytes(), tmpParse.Interface())
-
 				f.Set(tmpParse.Elem())
+
 			} else {
 				f.Set(scanRes)
 			}
@@ -159,8 +159,11 @@ func (q *Query) Select(i interface{}) error {
 		if items.Len() > 1 {
 			return ErrorMultipleResults
 		}
-
+		if items.Len() == 0 {
+			return ErrorNoRows
+		}
 		rV.Set(items.Index(0))
+
 	} else {
 		rV.Set(items)
 	}
@@ -168,6 +171,7 @@ func (q *Query) Select(i interface{}) error {
 	return nil
 }
 
+//Count ...
 func (q *Query) Count(count *int) error {
 	query := q.toSQL(queryTypeCount)
 
@@ -189,7 +193,7 @@ func (q *Query) Count(count *int) error {
 // TODO: Accept slices
 // TODO: Prepared Statements
 
-// Update Starts an update query chain
+// Insert Starts an insert query chain
 func (q *Query) Insert(i interface{}) (int64, error) {
 	var rowsAffected int64
 
@@ -203,7 +207,15 @@ func (q *Query) Insert(i interface{}) (int64, error) {
 	q.fields = getFields(rV.Type())
 
 	for j := 0; j < rV.NumField(); j++ {
-		q.values = append(q.values, fmt.Sprintf("%v", rV.Field(j)))
+		rvKind := rV.Field(j).Type().Kind()
+
+		if rvKind == reflect.Map || rvKind == reflect.Slice || rvKind == reflect.Struct || rvKind == reflect.Interface {
+			value, _ := json.Marshal(rV.Field(j).Interface())
+			q.values = append(q.values, fmt.Sprintf("%v", string(value)))
+
+		} else {
+			q.values = append(q.values, fmt.Sprintf("%v", rV.Field(j)))
+		}
 	}
 
 	sql := q.toSQL(queryTypeInsert)
@@ -227,6 +239,10 @@ func (q *Query) Update(i interface{}) (int64, error) {
 
 	rV := reflect.ValueOf(i)
 
+	if rV.Kind() == reflect.Ptr {
+		rV = reflect.Indirect(reflect.ValueOf(i))
+	}
+
 	// Only accept structs
 	if rV.Kind() != reflect.Struct {
 		return rowsAffected, ErrorInvalidType
@@ -235,7 +251,15 @@ func (q *Query) Update(i interface{}) (int64, error) {
 	q.fields = getFields(rV.Type())
 
 	for j := 0; j < rV.NumField(); j++ {
-		q.values = append(q.values, fmt.Sprintf("%v", rV.Field(j)))
+		rvKind := rV.Field(j).Type().Kind()
+
+		if rvKind == reflect.Map || rvKind == reflect.Slice || rvKind == reflect.Struct || rvKind == reflect.Interface {
+			value, _ := json.Marshal(rV.Field(j).Interface())
+			q.values = append(q.values, fmt.Sprintf("%v", string(value)))
+
+		} else {
+			q.values = append(q.values, fmt.Sprintf("%v", rV.Field(j)))
+		}
 	}
 
 	sql := q.toSQL(queryTypeUpdate)
@@ -253,7 +277,7 @@ func (q *Query) Update(i interface{}) (int64, error) {
 	return rowsAffected, err
 }
 
-// DeleteFrom starts a delete from query chain
+// Delete starts a delete from query chain
 func (q *Query) Delete() (int64, error) {
 	var rowsAffected int64
 
