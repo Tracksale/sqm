@@ -18,6 +18,12 @@ const (
 	NotIn     = 6
 	IsNull    = 7
 	IsNotNull = 8
+
+	Between      = 9
+	Greater      = 10
+	GreaterEqual = 11
+	Lower        = 12
+	LowerEqual   = 13
 )
 
 type groupStruct struct {
