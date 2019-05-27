@@ -12,6 +12,7 @@ func buildUpdate(fields []string, values []sql.NullString) string {
 	for index, f := range fields {
 		value := values[index].String
 
+		//TODO: change this
 		if values[index].String == "" || values[index].String == "<nil>" {
 			parts = append(parts, f+"=NULL")
 		} else {
