@@ -1,18 +1,45 @@
 package sqm
 
 import (
+	"database/sql"
 	"strconv"
 	"strings"
 )
 
-func buildUpdate(fields []string, values []string) string {
+func buildUpdate(fields []string, values []sql.NullString) string {
 
 	var parts []string
 	for index, f := range fields {
-		parts = append(parts, f+"='"+values[index]+"'")
+		value := values[index].String
+
+		if values[index].String == "" || values[index].String == "<nil>" {
+			parts = append(parts, f+"=NULL")
+		} else {
+			parts = append(parts, f+"='"+value+"'")
+		}
+
 	}
 
 	return strings.Join(parts, ", ")
+}
+
+func parseInsertValues(values []sql.NullString) string {
+	var valuesSQL string
+
+	for index, value := range values {
+		if value.String == "" {
+			valuesSQL += "NULL"
+		} else {
+			valuesSQL += "'" + value.String + "'"
+		}
+
+		if index != len(values)-1 {
+			valuesSQL += ", "
+		}
+
+	}
+
+	return valuesSQL
 }
 
 //TODO: return error when query params are invalid or insufficient
@@ -35,7 +62,7 @@ func (q *Query) toSQL(qT int) string {
 	case queryTypeCount:
 		query += "SELECT COUNT(*)\nFROM " + q.table
 	case queryTypeInsert:
-		query += "INSERT INTO " + q.table + "(" + strings.Join(fields, ", ") + ") VALUES ('" + strings.Join(q.values, "', '") + "')"
+		query += "INSERT INTO " + q.table + "(" + strings.Join(fields, ", ") + ") VALUES (" + parseInsertValues(q.values) + ")"
 	}
 
 	// Where conditions
