@@ -235,8 +235,6 @@ func (q *Query) Insert(i interface{}) (int64, error) {
 
 	sql := q.toSQL(queryTypeInsert)
 
-	fmt.Println(sql)
-
 	result, err := q.conn.Exec(sql)
 	if err != nil {
 		return rowsAffected, err
