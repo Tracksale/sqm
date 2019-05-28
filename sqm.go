@@ -28,7 +28,7 @@ type Query struct {
 
 	fields []field
 
-	values []sql.NullString
+	values []interface{}
 }
 
 // Using an specified db connection and table
@@ -229,11 +229,13 @@ func (q *Query) Insert(i interface{}) (int64, error) {
 			}
 
 		default:
-			q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", rV.Field(j))})
+			q.values = append(q.values, fmt.Sprintf("%v", rV.Field(j)))
 		}
 	}
 
 	sql := q.toSQL(queryTypeInsert)
+
+	fmt.Println(sql)
 
 	result, err := q.conn.Exec(sql)
 	if err != nil {
@@ -284,7 +286,7 @@ func (q *Query) Update(i interface{}) (int64, error) {
 			}
 
 		default:
-			q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", rV.Field(j))})
+			q.values = append(q.values, fmt.Sprintf("%v", rV.Field(j)))
 		}
 	}
 

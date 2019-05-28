@@ -2,36 +2,52 @@ package sqm
 
 import (
 	"database/sql"
+	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
 
-func buildUpdate(fields []string, values []sql.NullString) string {
+func buildUpdate(fields []string, values []interface{}) string {
 
 	var parts []string
 	for index, f := range fields {
-		value := values[index].String
-
-		//TODO: change this
-		if values[index].String == "" || values[index].String == "<nil>" {
-			parts = append(parts, f+"=NULL")
-		} else {
-			parts = append(parts, f+"='"+value+"'")
+		fmt.Println(reflect.TypeOf(values[index]).Name())
+		switch reflect.TypeOf(values[index]).Name() {
+		case "string":
+			parts = append(parts, f+"='"+values[index].(string)+"'")
+		case "NullString":
+			nullString := values[index].(sql.NullString)
+			if nullString.String == "" || nullString.String == "<nil>" {
+				parts = append(parts, f+"=NULL")
+			} else {
+				parts = append(parts, f+"='"+nullString.String+"'")
+			}
+		default:
+			parts = append(parts, f+"=''")
 		}
-
 	}
 
 	return strings.Join(parts, ", ")
 }
 
-func parseInsertValues(values []sql.NullString) string {
+func parseInsertValues(values []interface{}) string {
 	var valuesSQL string
 
 	for index, value := range values {
-		if value.String == "" {
-			valuesSQL += "NULL"
-		} else {
-			valuesSQL += "'" + value.String + "'"
+		fmt.Println(reflect.TypeOf(value).Name())
+		switch reflect.TypeOf(value).Name() {
+		case "string":
+			valuesSQL += "'" + value.(string) + "'"
+		case "NullString":
+			nullString := value.(sql.NullString)
+			if nullString.String == "" || nullString.String == "<nil>" {
+				valuesSQL += "NULL"
+			} else {
+				valuesSQL += "'" + nullString.String + "'"
+			}
+		default:
+			valuesSQL += "''"
 		}
 
 		if index != len(values)-1 {
