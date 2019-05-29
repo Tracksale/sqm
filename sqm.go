@@ -28,7 +28,7 @@ type Query struct {
 
 	fields []field
 
-	values []sql.NullString
+	values []interface{}
 }
 
 // Using an specified db connection and table
@@ -142,12 +142,18 @@ func (q *Query) Select(i interface{}) error {
 			scanRes := reflect.ValueOf(mappings[j]).Elem()
 			fKind := f.Type().Kind()
 
-			if fKind == reflect.Map || fKind == reflect.Slice || fKind == reflect.Struct || fKind == reflect.Interface {
+			switch fKind {
+			case reflect.Map, reflect.Slice, reflect.Struct, reflect.Interface:
 				tmpParse := reflect.New(f.Type())
 				json.Unmarshal(scanRes.Bytes(), tmpParse.Interface())
 				f.Set(tmpParse.Elem())
-
-			} else {
+			case reflect.Ptr:
+				if scanRes.String() == "" || scanRes.String() == "<nil>" {
+					f.Set(reflect.ValueOf(nil))
+				} else {
+					f.Set(scanRes)
+				}
+			default:
 				f.Set(scanRes)
 			}
 		}
@@ -211,26 +217,7 @@ func (q *Query) Insert(i interface{}) (int64, error) {
 	q.fields = getFields(rV.Type())
 
 	for j := 0; j < rV.NumField(); j++ {
-		rvKind := rV.Field(j).Type().Kind()
-
-		switch rvKind {
-
-		case reflect.Map, reflect.Slice, reflect.Struct, reflect.Interface:
-			value, _ := json.Marshal(rV.Field(j).Interface())
-			q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", string(value))})
-
-		case reflect.Ptr:
-			indirectValue := reflect.Indirect(rV.Field(j))
-
-			if indirectValue.Kind() == reflect.Invalid {
-				q.values = append(q.values, sql.NullString{String: ""})
-			} else {
-				q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", indirectValue)})
-			}
-
-		default:
-			q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", rV.Field(j))})
-		}
+		q.values = append(q.values, prepareInput(rV.Field(j)))
 	}
 
 	sql := q.toSQL(queryTypeInsert)
@@ -266,26 +253,7 @@ func (q *Query) Update(i interface{}) (int64, error) {
 	q.fields = getFields(rV.Type())
 
 	for j := 0; j < rV.NumField(); j++ {
-		rvKind := rV.Field(j).Type().Kind()
-
-		switch rvKind {
-
-		case reflect.Map, reflect.Slice, reflect.Struct, reflect.Interface:
-			value, _ := json.Marshal(rV.Field(j).Interface())
-			q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", string(value))})
-
-		case reflect.Ptr:
-			indirectValue := reflect.Indirect(rV.Field(j))
-
-			if indirectValue.Kind() == reflect.Invalid {
-				q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", nil)})
-			} else {
-				q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", indirectValue)})
-			}
-
-		default:
-			q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", rV.Field(j))})
-		}
+		q.values = append(q.values, prepareInput(rV.Field(j)))
 	}
 
 	sql := q.toSQL(queryTypeUpdate)
@@ -301,6 +269,29 @@ func (q *Query) Update(i interface{}) (int64, error) {
 	}
 
 	return rowsAffected, err
+}
+
+func prepareInput(field reflect.Value) interface{} {
+	fieldKind := field.Type().Kind()
+
+	switch fieldKind {
+
+	case reflect.Map, reflect.Slice, reflect.Struct, reflect.Interface:
+		value, _ := json.Marshal(field.Interface())
+		return sql.NullString{String: fmt.Sprintf("%v", string(value))}
+
+	case reflect.Ptr:
+		indirectValue := reflect.Indirect(field)
+
+		if indirectValue.Kind() == reflect.Invalid {
+			return sql.NullString{String: "", Valid: false}
+		} else {
+			return sql.NullString{String: fmt.Sprintf("%v", indirectValue)}
+		}
+
+	default:
+		return fmt.Sprintf("%v", field)
+	}
 }
 
 // Delete starts a delete from query chain
