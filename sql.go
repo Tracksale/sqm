@@ -18,7 +18,7 @@ func buildUpdate(fields []string, values []interface{}) string {
 
 		case "NullString":
 			nullString := values[index].(sql.NullString)
-			if nullString.String == "" || nullString.String == "<nil>" {
+			if nullString.String == "" {
 				parts = append(parts, f+"=NULL")
 			} else {
 				parts = append(parts, f+"='"+nullString.String+"'")
@@ -41,7 +41,7 @@ func parseInsertValues(values []interface{}) string {
 			valuesSQL += "'" + value.(string) + "'"
 		case "NullString":
 			nullString := value.(sql.NullString)
-			if nullString.String == "" || nullString.String == "<nil>" {
+			if nullString.String == "" {
 				valuesSQL += "NULL"
 			} else {
 				valuesSQL += "'" + nullString.String + "'"
