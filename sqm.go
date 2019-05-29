@@ -28,7 +28,7 @@ type Query struct {
 
 	fields []field
 
-	values []string
+	values []sql.NullString
 }
 
 // Using an specified db connection and table
@@ -200,7 +200,7 @@ func (q *Query) Insert(i interface{}) (int64, error) {
 	rV := reflect.ValueOf(i)
 
 	if rV.Kind() == reflect.Ptr {
-		rV = reflect.Indirect(reflect.ValueOf(i))
+		rV = reflect.Indirect(rV)
 	}
 
 	// Only accept structs
@@ -213,12 +213,23 @@ func (q *Query) Insert(i interface{}) (int64, error) {
 	for j := 0; j < rV.NumField(); j++ {
 		rvKind := rV.Field(j).Type().Kind()
 
-		if rvKind == reflect.Map || rvKind == reflect.Slice || rvKind == reflect.Struct || rvKind == reflect.Interface {
-			value, _ := json.Marshal(rV.Field(j).Interface())
-			q.values = append(q.values, fmt.Sprintf("%v", string(value)))
+		switch rvKind {
 
-		} else {
-			q.values = append(q.values, fmt.Sprintf("%v", rV.Field(j)))
+		case reflect.Map, reflect.Slice, reflect.Struct, reflect.Interface:
+			value, _ := json.Marshal(rV.Field(j).Interface())
+			q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", string(value))})
+
+		case reflect.Ptr:
+			indirectValue := reflect.Indirect(rV.Field(j))
+
+			if indirectValue.Kind() == reflect.Invalid {
+				q.values = append(q.values, sql.NullString{String: ""})
+			} else {
+				q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", indirectValue)})
+			}
+
+		default:
+			q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", rV.Field(j))})
 		}
 	}
 
@@ -257,12 +268,23 @@ func (q *Query) Update(i interface{}) (int64, error) {
 	for j := 0; j < rV.NumField(); j++ {
 		rvKind := rV.Field(j).Type().Kind()
 
-		if rvKind == reflect.Map || rvKind == reflect.Slice || rvKind == reflect.Struct || rvKind == reflect.Interface {
-			value, _ := json.Marshal(rV.Field(j).Interface())
-			q.values = append(q.values, fmt.Sprintf("%v", string(value)))
+		switch rvKind {
 
-		} else {
-			q.values = append(q.values, fmt.Sprintf("%v", rV.Field(j)))
+		case reflect.Map, reflect.Slice, reflect.Struct, reflect.Interface:
+			value, _ := json.Marshal(rV.Field(j).Interface())
+			q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", string(value))})
+
+		case reflect.Ptr:
+			indirectValue := reflect.Indirect(rV.Field(j))
+
+			if indirectValue.Kind() == reflect.Invalid {
+				q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", nil)})
+			} else {
+				q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", indirectValue)})
+			}
+
+		default:
+			q.values = append(q.values, sql.NullString{String: fmt.Sprintf("%v", rV.Field(j))})
 		}
 	}
 
