@@ -25,8 +25,8 @@ type Query struct {
 	orderBy        []orderBy
 	limit          *int
 	offset         *int
-
-	fields []field
+	debug          bool
+	fields         []field
 
 	values []interface{}
 }
@@ -36,12 +36,27 @@ func Using(db *sql.DB, table string) *Query {
 	return &Query{
 		conn:  db,
 		table: table,
+		debug: false,
 	}
+}
+
+//Debug enable SQL log
+func (q *Query) Debug() *Query {
+	q.debug = true
+	return q
 }
 
 type field struct {
 	sField reflect.StructField
 	db     string
+}
+
+func (q Query) log(msg string) {
+	if q.debug {
+		ansiColor := "\033[1;33m%s\033[0m"
+		fmt.Printf(ansiColor, strings.Replace(msg, "\n", " ", -1))
+		fmt.Println("")
+	}
 }
 
 func getFields(rT reflect.Type) []field {
@@ -121,6 +136,7 @@ func (q *Query) Select(i interface{}) error {
 	}
 
 	sql := q.toSQL(queryTypeSelect)
+	q.log(sql)
 
 	rows, err := q.conn.Query(sql)
 	if err != nil {
@@ -180,6 +196,7 @@ func (q *Query) Select(i interface{}) error {
 //Count ...
 func (q *Query) Count(count *int) error {
 	query := q.toSQL(queryTypeCount)
+	q.log(query)
 
 	rows, err := q.conn.Query(query)
 	if err != nil {
@@ -221,6 +238,7 @@ func (q *Query) Insert(i interface{}) (int64, error) {
 	}
 
 	sql := q.toSQL(queryTypeInsert)
+	q.log(sql)
 
 	result, err := q.conn.Exec(sql)
 	if err != nil {
@@ -257,6 +275,7 @@ func (q *Query) Update(i interface{}) (int64, error) {
 	}
 
 	sql := q.toSQL(queryTypeUpdate)
+	q.log(sql)
 
 	result, err := q.conn.Exec(sql)
 	if err != nil {
@@ -299,6 +318,7 @@ func (q *Query) Delete() (int64, error) {
 	var rowsAffected int64
 
 	sql := q.toSQL(queryTypeDelete)
+	q.log(sql)
 
 	result, err := q.conn.Exec(sql)
 	if err != nil {
