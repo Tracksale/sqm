@@ -1,3 +1,3 @@
-module github.com/g-ferreira-dev/sqm
+module github.com/tracksale/sqm
 
 go 1.12
