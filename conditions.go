@@ -30,7 +30,7 @@ type groupStruct struct {
 	conditions []interface{}
 }
 
-// Internal representation of condition
+//ConditionStruct Internal representation of condition
 type ConditionStruct struct {
 	field         string
 	conditionType int
