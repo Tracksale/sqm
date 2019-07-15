@@ -16,7 +16,7 @@ const (
 	queryTypeInsert = 5
 )
 
-// Internal query representation
+// Query Internal query representation
 type Query struct {
 	conn *sql.DB
 
@@ -135,10 +135,10 @@ func (q *Query) Select(i interface{}) error {
 		mappings = append(mappings, a)
 	}
 
-	sql := q.toSQL(queryTypeSelect)
+	sql, paramList := q.toSQL(queryTypeSelect)
 	q.log(sql)
 
-	rows, err := q.conn.Query(sql)
+	rows, err := q.conn.Query(sql, paramList...)
 	if err != nil {
 		return err
 	}
@@ -195,10 +195,10 @@ func (q *Query) Select(i interface{}) error {
 
 //Count ...
 func (q *Query) Count(count *int) error {
-	query := q.toSQL(queryTypeCount)
+	query, paramList := q.toSQL(queryTypeCount)
 	q.log(query)
 
-	rows, err := q.conn.Query(query)
+	rows, err := q.conn.Query(query, paramList...)
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,8 @@ func (q *Query) Count(count *int) error {
 }
 
 // TODO: Accept slices
-// TODO: Prepared Statements
+// TODO: Prepared Statements - use db.Query instead of db.Exec - ensure against SQL injection
+// 			create a map(or something) and construct db.Query
 
 // Insert Starts an insert query chain
 func (q *Query) Insert(i interface{}) (int64, error) {
@@ -237,10 +238,10 @@ func (q *Query) Insert(i interface{}) (int64, error) {
 		q.values = append(q.values, prepareInput(rV.Field(j)))
 	}
 
-	sql := q.toSQL(queryTypeInsert)
+	sql, paramList := q.toSQL(queryTypeInsert)
 	q.log(sql)
 
-	result, err := q.conn.Exec(sql)
+	result, err := q.conn.Exec(sql, paramList...)
 	if err != nil {
 		return rowsAffected, err
 	}
@@ -274,10 +275,10 @@ func (q *Query) Update(i interface{}) (int64, error) {
 		q.values = append(q.values, prepareInput(rV.Field(j)))
 	}
 
-	sql := q.toSQL(queryTypeUpdate)
+	sql, paramList := q.toSQL(queryTypeUpdate)
 	q.log(sql)
 
-	result, err := q.conn.Exec(sql)
+	result, err := q.conn.Exec(sql, paramList...)
 	if err != nil {
 		return rowsAffected, err
 	}
@@ -304,9 +305,8 @@ func prepareInput(field reflect.Value) interface{} {
 
 		if indirectValue.Kind() == reflect.Invalid {
 			return sql.NullString{String: "", Valid: false}
-		} else {
-			return sql.NullString{String: fmt.Sprintf("%v", indirectValue)}
 		}
+		return sql.NullString{String: fmt.Sprintf("%v", indirectValue)}
 
 	default:
 		return fmt.Sprintf("%v", field)
@@ -317,10 +317,10 @@ func prepareInput(field reflect.Value) interface{} {
 func (q *Query) Delete() (int64, error) {
 	var rowsAffected int64
 
-	sql := q.toSQL(queryTypeDelete)
+	sql, paramList := q.toSQL(queryTypeDelete)
 	q.log(sql)
 
-	result, err := q.conn.Exec(sql)
+	result, err := q.conn.Exec(sql, paramList...)
 	if err != nil {
 		return rowsAffected, err
 	}

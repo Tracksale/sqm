@@ -7,45 +7,51 @@ import (
 	"strings"
 )
 
-func buildUpdate(fields []string, values []interface{}) string {
+func buildUpdate(fields []string, values []interface{}, paramList *[]interface{}) string {
 
 	var parts []string
 	for index, f := range fields {
 
 		switch reflect.TypeOf(values[index]).Name() {
 		case "string":
-			parts = append(parts, f+"='"+values[index].(string)+"'")
+			*paramList = append(*paramList, values[index].(string))
+			parts = append(parts, f+"=$"+strconv.Itoa(len(*paramList)))
 
 		case "NullString":
 			nullString := values[index].(sql.NullString)
 			if nullString.String == "" {
 				parts = append(parts, f+"=NULL")
 			} else {
-				parts = append(parts, f+"='"+nullString.String+"'")
+				*paramList = append(*paramList, nullString.String)
+				parts = append(parts, f+"=$"+strconv.Itoa(len(*paramList)))
 			}
 
 		default:
 			parts = append(parts, f+"=''")
 		}
+
 	}
 
 	return strings.Join(parts, ", ")
 }
 
-func parseInsertValues(values []interface{}) string {
+func parseInsertValues(values []interface{}, paramList *[]interface{}) string {
 	var valuesSQL string
 
 	for index, value := range values {
 		switch reflect.TypeOf(value).Name() {
 		case "string":
-			valuesSQL += "'" + value.(string) + "'"
+			*paramList = append(*paramList, value.(string))
+			valuesSQL += "$" + strconv.Itoa(len(*paramList))
 		case "NullString":
 			nullString := value.(sql.NullString)
 			if nullString.String == "" {
 				valuesSQL += "NULL"
 			} else {
-				valuesSQL += "'" + nullString.String + "'"
+				*paramList = append(*paramList, nullString.String)
+				valuesSQL += "$" + strconv.Itoa(len(*paramList))
 			}
+
 		default:
 			valuesSQL += "''"
 		}
@@ -59,11 +65,37 @@ func parseInsertValues(values []interface{}) string {
 	return valuesSQL
 }
 
+func buildInStmt(params []string, paramList *[]interface{}, isNot bool) string {
+	var sqlCMD string
+	if isNot {
+		sqlCMD += " NOT"
+	}
+	sqlCMD += ` IN( `
+
+	for index, param := range params {
+		*paramList = append(*paramList, param)
+		sqlCMD += "$" + strconv.Itoa(len(*paramList))
+		if index != len(params)-1 {
+			sqlCMD += ", "
+		}
+	}
+	if len(params) == 0 {
+		sqlCMD += "''"
+	}
+
+	sqlCMD += " )"
+
+	return sqlCMD
+}
+
 //TODO: return error when query params are invalid or insufficient
-func (q *Query) toSQL(qT int) string {
+//TODO: test this against injections
+func (q *Query) toSQL(qT int) (string, []interface{}) {
 	query := ""
 
 	var fields []string
+
+	var paramList []interface{}
 
 	for _, field := range q.fields {
 		fields = append(fields, field.db)
@@ -73,13 +105,13 @@ func (q *Query) toSQL(qT int) string {
 	case queryTypeSelect:
 		query += "SELECT " + strings.Join(fields, ", ") + "\nFROM " + q.table
 	case queryTypeUpdate:
-		query += "UPDATE " + q.table + "\n SET " + buildUpdate(fields, q.values)
+		query += "UPDATE " + q.table + "\n SET " + buildUpdate(fields, q.values, &paramList)
 	case queryTypeDelete:
 		query += "DELETE\nFROM " + q.table
 	case queryTypeCount:
 		query += "SELECT COUNT(*)\nFROM " + q.table
 	case queryTypeInsert:
-		query += "INSERT INTO " + q.table + "(" + strings.Join(fields, ", ") + ") VALUES (" + parseInsertValues(q.values) + ")"
+		query += "INSERT INTO " + q.table + "(" + strings.Join(fields, ", ") + ") VALUES (" + parseInsertValues(q.values, &paramList) + ")"
 	}
 
 	// Where conditions
@@ -103,31 +135,42 @@ func (q *Query) toSQL(qT int) string {
 			case internalOr:
 				query += " OR "
 			case Equal:
-				query += condition.field + " = '" + condition.params[0] + "'"
+				paramList = append(paramList, condition.params[0])
+				query += condition.field + " = $" + strconv.Itoa(len(paramList))
+
 			case NotEqual:
-				query += condition.field + " != '" + condition.params[0] + "'"
+				paramList = append(paramList, condition.params[0])
+				query += condition.field + " != $" + strconv.Itoa(len(paramList))
+
 			case Like:
-				query += condition.field + " LIKE '" + condition.params[0] + "'"
+				paramList = append(paramList, condition.params[0])
+				query += condition.field + " LIKE $" + strconv.Itoa(len(paramList))
 			case NotLike:
-				query += condition.field + " NOT LIKE '" + condition.params[0] + "'"
+				paramList = append(paramList, condition.params[0])
+				query += condition.field + " NOT LIKE $" + strconv.Itoa(len(paramList))
 			case In:
-				query += condition.field + ` IN ('` + strings.Join(condition.params, "', '") + `')`
+				query += condition.field + buildInStmt(condition.params, &paramList, false)
 			case NotIn:
-				query += condition.field + ` NOT IN ('` + strings.Join(condition.params, "', '") + `')`
+				query += condition.field + buildInStmt(condition.params, &paramList, true)
 			case IsNull:
 				query += condition.field + " IS NULL"
 			case IsNotNull:
 				query += condition.field + " IS NOT NULL"
 			case Between:
-				query += condition.field + " BETWEEN '" + condition.params[0] + "' AND '" + condition.params[1]
+				paramList = append(paramList, condition.params[0], condition.params[1])
+				query += condition.field + " BETWEEN $" + strconv.Itoa(len(paramList)-1) + " AND $" + strconv.Itoa(len(paramList))
 			case Greater:
-				query += condition.field + " > '" + condition.params[0] + "'"
+				paramList = append(paramList, condition.params[0])
+				query += condition.field + " > $" + strconv.Itoa(len(paramList))
 			case GreaterEqual:
-				query += condition.field + " >= '" + condition.params[0] + "'"
+				paramList = append(paramList, condition.params[0])
+				query += condition.field + " >= $" + strconv.Itoa(len(paramList))
 			case Lower:
-				query += condition.field + " < '" + condition.params[0] + "'"
+				paramList = append(paramList, condition.params[0])
+				query += condition.field + " < $" + strconv.Itoa(len(paramList))
 			case LowerEqual:
-				query += condition.field + " <= '" + condition.params[0] + "'"
+				paramList = append(paramList, condition.params[0])
+				query += condition.field + " <= $" + strconv.Itoa(len(paramList))
 			}
 
 			// I am so sorry, i will find a better way
@@ -149,6 +192,7 @@ func (q *Query) toSQL(qT int) string {
 		oBs := []string{}
 
 		for _, oB := range q.orderBy {
+			// paramList = append(paramList, oB.field)
 			tmpOb := "\n\t" + oB.field + " "
 			if oB.direction == Asc {
 				tmpOb += "ASC"
@@ -171,5 +215,5 @@ func (q *Query) toSQL(qT int) string {
 		query += "\nOFFSET " + strconv.Itoa(*q.offset)
 	}
 
-	return query
+	return query, paramList
 }
