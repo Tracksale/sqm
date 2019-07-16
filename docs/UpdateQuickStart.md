@@ -9,9 +9,9 @@ Follow the steps below to use SQM on your Update commands.
     query := sqm.Using(db, "{{table_name}}")
 ```
 
-### 2. Add Where conditions
+### 2. Add Some Conditions
+You can add conditions as you want, for more details see [select session](SelectQuickStart.md)
 
-'Where' function can be built using groups and conditions, see [select topic](SelectQuickStart.md)
 
 ### 3. Call Update Function
 
