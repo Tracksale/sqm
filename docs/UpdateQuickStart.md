@@ -15,13 +15,13 @@ Follow the steps below to use SQM on your Update commands.
 
 ### 3. Call Update Function
 
-Update function must be called using a struct that represents the new form of row
+Update function must be called using a struct that represents the new form of object on DB
 
 ```go
     //Represents: UPDATE table
     //              SET ...
     //              WHERE uuid='my_uuid'
-    sqmQuery.Where(
+    query.Where(
 		sqm.C("uuid", sqm.Equal, uuid),
 	).Update(object)
 ```
