@@ -15,13 +15,13 @@ You can add conditions as you want, for more details see [select session](Select
 
 ### 3. Call Update Function
 
-Update function must be called using a struct that represents the new form of object on DB
+Update function must be called using a struct that represents the new form of the object on DB
 
 ```go
     //Represents: UPDATE table
     //              SET ...
     //              WHERE uuid='my_uuid'
     query.Where(
-		sqm.C("uuid", sqm.Equal, uuid),
-	).Update(object)
+        sqm.C("uuid", sqm.Equal, uuid),
+    ).Update(object)
 ```

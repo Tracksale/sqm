@@ -14,7 +14,7 @@ You can add conditions as you want, for more details see [select session](Select
 
 
 ### 3. Call Count Function
-Count function expect an `int` param where result will be store
+Count function expects an `int` param where the result will be store
 
 ```go
     //Represents: SELECT COUNT(*)
