@@ -17,6 +17,8 @@ You can add conditions as you want, for more details see [select session](Select
 Count function expect a `int` param where result will be store
 
 ```go
-var counter int
-err := sqmQuery.Count(&counter)
+    //Represents: SELECT COUNT(*)
+    //              FROM table
+    var counter int
+    err := sqmQuery.Count(&counter)
 ```
