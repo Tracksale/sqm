@@ -8,3 +8,15 @@ Follow the steps below to use SQM on your Count commands.
     // db its a native *sql.DB instance
     query := sqm.Using(db, "{{table_name}}")
 ```
+
+### 2. Add Some Conditions
+You can add conditions as you want, for more details see [select session](SelectQuickStart.md)
+
+
+### 3. Call Count Function
+Count function expect a `int` param where result will be store
+
+```go
+var counter int
+err := sqmQuery.Count(&counter)
+```
